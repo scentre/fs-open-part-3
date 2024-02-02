@@ -23,8 +23,8 @@ const PhoneBook = mongoose.model("phoneBook", phoneBookSchema);
 
 if (process.argv.length == 3) {
   PhoneBook.find({}).then((result) => {
-    result.forEach((note) => {
-      console.log(note);
+    result.forEach((phoneBook) => {
+      console.log(phoneBook);
     });
     mongoose.connection.close();
   });

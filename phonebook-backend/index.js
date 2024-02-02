@@ -28,22 +28,30 @@ app.get("/api/person", function (req, res) {
   });
 });
 
-app.get("/api/person/:id", function (req, res) {
+app.get("/api/person/:id", function (req, res, next) {
   const id = Number(req.params.id);
 
-  PhoneBook.findById(id).then((phoneBook) => {
-    res.json(phoneBook);
-  });
+  PhoneBook.findById(id)
+    .then((phoneBook) => {
+      if (phoneBook) {
+        res.json(phoneBook);
+      } else {
+        res.status(404).end();
+      }
+    })
+    .catch((err) => next(err));
 });
 
-app.delete("/api/person/:id", (request, response) => {
+app.delete("/api/person/:id", (request, response, next) => {
   const id = Number(request.params.id);
 
-  PhoneBook.deleteOne({ id: id }).then((result) => {
-    console.log(result);
+  PhoneBook.deleteOne({ id: id })
+    .then((result) => {
+      console.log(result);
 
-    response.status(204).end();
-  });
+      response.status(204).end();
+    })
+    .catch((error) => next(error));
 });
 //
 
@@ -66,23 +74,43 @@ app.post("/api/persons", (req, res) => {
   });
 });
 
-// app.get("/info", function (req, res) {
-//   let responseData = `<p>
+app.put("/api/person/:id", (request, response, next) => {
+  const { name, phoneNo } = request.body;
 
-//   phonebook has info for
-//    ${data.length} people
-//   <br/>
-//   ${new Date()}
-//     </p>`;
+  PhoneBook.findByIdAndUpdate(
+    request.params.id,
+    { name, phoneNo },
+    { new: true }
+  )
+    .then((updatePhoneBook) => {
+      response.json(updatePhoneBook);
+    })
+    .catch((error) => next(error));
+});
 
-//   res.send(responseData);
-// });
+app.get("/info", (request, response, next) => {
+  PhoneBook.find({}).then((res) => {
+    response.json({ length: res.length });
+  });
+});
+
+const errorHandler = (error, request, response, next) => {
+  console.error(error.message);
+
+  if (error.name === "CastError") {
+    return response.status(400).send({ error: "malformatted id" });
+  }
+
+  next(error);
+};
 
 const unknownEndpoint = (request, response) => {
   response.status(404).send({ error: "unknown endpoint" });
 };
 
 app.use(unknownEndpoint);
+// this has to be the last loaded middleware.
+app.use(errorHandler);
 
 const PORT = process.env.PORT || 3001;
 app.listen(PORT, () => {
