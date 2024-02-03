@@ -1,7 +1,6 @@
 require("dotenv").config();
 const express = require("express");
 const morgan = require("morgan");
-const path = require("path");
 
 const app = express();
 
@@ -15,7 +14,7 @@ app.use(express.static("dist"));
 const PhoneBook = require("./models/phoneBook");
 
 // Use the 'combined' format for morgan to include request bodies
-morgan.token("body", (req, res) => JSON.stringify(req.body));
+morgan.token("body", (req) => JSON.stringify(req.body));
 app.use(
   morgan(
     ":method :url :status :res[content-length] :response-time ms - :body - :req[content-length]"
@@ -69,6 +68,11 @@ app.post("/api/persons", (req, res) => {
     phoneNo,
   });
 
+  phone.validate((err) => {
+    if (err) console.log(err);
+    else console.log("validatin passed");
+  });
+
   phone.save().then((savedPhone) => {
     res.json(savedPhone);
   });
@@ -80,7 +84,7 @@ app.put("/api/person/:id", (request, response, next) => {
   PhoneBook.findByIdAndUpdate(
     request.params.id,
     { name, phoneNo },
-    { new: true }
+    { new: true, runValidators: true, context: "query" }
   )
     .then((updatePhoneBook) => {
       response.json(updatePhoneBook);
@@ -88,7 +92,7 @@ app.put("/api/person/:id", (request, response, next) => {
     .catch((error) => next(error));
 });
 
-app.get("/info", (request, response, next) => {
+app.get("/info", (request, response) => {
   PhoneBook.find({}).then((res) => {
     response.json({ length: res.length });
   });
@@ -112,6 +116,7 @@ app.use(unknownEndpoint);
 // this has to be the last loaded middleware.
 app.use(errorHandler);
 
+// eslint-disable-next-line no-undef
 const PORT = process.env.PORT || 3001;
 app.listen(PORT, () => {
   console.log(`listensing on port ${PORT}`);
